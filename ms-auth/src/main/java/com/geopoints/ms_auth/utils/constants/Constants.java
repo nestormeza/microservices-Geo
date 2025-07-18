@@ -9,4 +9,6 @@ public class Constants {
     public static final String[] ENDPOINTS_PERMIT = {"/api/authentication/v1/**","/actuador/**"};
     public static final String ENDPOINTS_USER= "/api/user/v1/**";
     public static final String ENDPOINTS_ADMIN = "/api/admin/v1/**";
+
+    public static final Boolean STATUS_ACTIVE = true;
 }

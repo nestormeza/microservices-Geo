@@ -1,7 +1,6 @@
 package com.geopoints.ms_auth.service.impl;
 
 import com.geopoints.ms_auth.service.UserAdminService;
-import com.geopoints.ms_auth.utils.request.AdminRequest;
 import com.geopoints.ms_auth.utils.response.AdminResponse;
 
 import java.util.List;
@@ -10,11 +9,6 @@ public class UserAdminServiceImpl implements UserAdminService {
     @Override
     public List<AdminResponse> allUserAdmin(String token) {
         return List.of();
-    }
-
-    @Override
-    public AdminResponse signUpAdmin(AdminRequest adminRequest, String token) {
-        return null;
     }
 
     @Override

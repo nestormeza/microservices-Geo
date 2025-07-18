@@ -2,11 +2,13 @@ package com.geopoints.ms_auth.utils.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
+@Builder
 public class UserRequest {
     @NotBlank(message = "El nombre no puede estar vacío")
     private String name;
@@ -19,4 +21,5 @@ public class UserRequest {
     private String username;
     @NotBlank(message = "La contraseña no puede estar vacía")
     private String password;
+    private String ciudadid;
 }
