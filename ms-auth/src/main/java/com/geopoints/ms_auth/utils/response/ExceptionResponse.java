@@ -5,14 +5,15 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.List;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class ValidateResponse {
+public class ExceptionResponse {
+    private int status;
     private String message;
-    private Boolean isValid;
-    private List<String> roles;
+    private LocalDateTime timestamp;
+    private String path;
 }

@@ -14,6 +14,6 @@ public interface AuthenticationService {
     UserResponse signUpAdmin(UserRequest userRequest, String token);
     UserResponse signUpSuperAdmin(UserRequest userRequest, String token);
     UserResponse signUpOwner(UserRequest userRequest, String token);
-    TokenResponse getTokenByRefresh(String token) throws IllegalAccessException;
+    TokenResponse getTokenByRefresh(String token);
     ValidateResponse validateToken(String token);
 }

@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -67,7 +68,7 @@ public class JwtServiceImpl implements JwtService {
                 .setClaims(claims != null ? claims : new HashMap<>())
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis()+600000))
+                .setExpiration(new Date(System.currentTimeMillis()+604_800_000))
                 .signWith(getKey(), SignatureAlgorithm.HS512)
                 .compact();
     }
@@ -83,6 +84,13 @@ public class JwtServiceImpl implements JwtService {
     @Override
     public Claims claims(String token) {
         return allClaims(token);
+    }
+
+    @Override
+    public List<String> getRolesClaims(String token) {
+        Claims claims = claims(token);
+        List<String> roles = claims.get("roles", List.class);
+        return roles;
     }
 
     //GENERAR CLAVE USER

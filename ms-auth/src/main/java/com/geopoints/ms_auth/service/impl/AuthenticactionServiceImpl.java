@@ -2,6 +2,7 @@ package com.geopoints.ms_auth.service.impl;
 
 import com.geopoints.ms_auth.entity.RolEntity;
 import com.geopoints.ms_auth.entity.UserEntity;
+import com.geopoints.ms_auth.exception.GlobalException;
 import com.geopoints.ms_auth.repository.RolRepository;
 import com.geopoints.ms_auth.repository.UserRepository;
 import com.geopoints.ms_auth.service.AuthenticationService;
@@ -18,6 +19,7 @@ import com.geopoints.ms_auth.utils.response.ValidateResponse;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -51,42 +53,57 @@ public class AuthenticactionServiceImpl implements AuthenticationService {
 
     @Override
     public UserResponse signUpUser(UserRequest userRequest) {
-        return registerUser(userRequest,Set.of("USER"),1L);
+        return registerUser(userRequest,Set.of(Role.USER.name()),1L);
     }
 
     @Override
     public UserResponse signUpAdmin(UserRequest userRequest, String token) {
-        return registerUser(userRequest,Set.of("ADMIN"),1L);
+        return registerUser(userRequest,Set.of(Role.ADMIN.name()),1L);
     }
 
     @Override
     public UserResponse signUpSuperAdmin(UserRequest userRequest, String token) {
-        return registerUser(userRequest,Set.of("ADMIN","SUPERADMIN"),1L);
+        return registerUser(userRequest,Set.of(Role.ADMIN.name(),Role.SUPERADMIN.name()),1L);
     }
 
     @Override
     public UserResponse signUpOwner(UserRequest userRequest, String token) {
-        return registerUser(userRequest,Set.of("ADMIN","SUPERADMIN","OWNER"),1L);
+        return registerUser(userRequest,Set.of(Role.ADMIN.name(),Role.SUPERADMIN.name(),Role.ADMIN.name(),Role.OWNER.name()),1L);
     }
 
     @Override
-    public TokenResponse getTokenByRefresh(String token) throws IllegalAccessException {
-        return null;
+    public TokenResponse getTokenByRefresh(String token) {
+        if(!jwtService.ValidateIsRefreshToken(token)){
+            throw new GlobalException(HttpStatus.UNAUTHORIZED.value(), Constants.TOKEN_REFRESH_400);
+        }
+
+        String username = jwtService.getUserName(token);
+        UserEntity user = validateEmail(username);
+        UserDetails userDetails = userService.userDetails().loadUserByUsername(user.getUsername());
+
+        if(!jwtService.validateToken(token,userDetails)){
+            throw new GlobalException(HttpStatus.UNAUTHORIZED.value(),Constants.TOKEN_INVALIDATE);
+        }
+
+        String newToken = jwtService.generateToken(user);
+
+        return TokenResponse.builder()
+                .token(newToken)
+                .refreshToken(token).build();
     }
 
     @Override
     public ValidateResponse validateToken(String token) {
         try {
-            Claims claims = jwtService.claims(token);
-            List<String> roles = claims.get("roles",List.class);
+            List<String> roles = jwtService.getRolesClaims(token);
 
             String username= jwtService.getUserName(token);
             UserDetails userDetails = userService.userDetails().loadUserByUsername(username);
             boolean result = jwtService.validateToken(token,userDetails) && !jwtService.ValidateIsRefreshToken(token);
 
-            return new ValidateResponse("El token es valido",result);
+            return new ValidateResponse(Constants.TOKEN_VALIDATE,result,roles);
         }catch (Exception ex){
-            throw new RuntimeException("ERROR");
+            throw new GlobalException(HttpStatus.UNAUTHORIZED.value(),Constants.TOKEN_INVALIDATE);
         }
     }
 
@@ -96,17 +113,17 @@ public class AuthenticactionServiceImpl implements AuthenticationService {
     //SABER SI EXISTE EL EMAIL EN LA BASE DE DATOS
     private UserEntity validateEmail(String email){
         log.info("Buscando usuario...");
-        return userRepository.findByEmail(email).orElseThrow(()->new RuntimeException("Error"));
+        return userRepository.findByEmail(email).orElseThrow(()->new GlobalException(HttpStatus.NOT_FOUND.value(),"Email "+Constants.NO_FUND));
     };
 
     //SABER SI EXISTE EL NOMBRE DE USUARIO EN LA BASE DE DATOS
     private UserEntity validateUserName(String username){
-        return userRepository.findByUserName(username).orElseThrow(()->new RuntimeException("Error"));
+        return userRepository.findByUserName(username).orElseThrow(()->new GlobalException(HttpStatus.NOT_FOUND.value(),"Usuario "+Constants.NO_FUND));
     }
 
     //OBTENER EL ROL
     private RolEntity getRol(Role rol){
-        return rolRepository.findByName(rol.name()).orElseThrow(()->new RuntimeException("Error"));
+        return rolRepository.findByName(rol.name()).orElseThrow(()->new GlobalException(HttpStatus.NOT_FOUND.value(),"Rol "+Constants.NO_FUND));
     }
 
     //ASIGNACION DE ROLES AL USUARIO
@@ -117,14 +134,14 @@ public class AuthenticactionServiceImpl implements AuthenticationService {
                 Role roleEnum = Role.valueOf(rol.toLowerCase());
                 rolesAssigned.add(getRol(roleEnum));
             }catch (Exception ex){
-                throw new RuntimeException("Error");
+                throw new GlobalException(HttpStatus.INTERNAL_SERVER_ERROR.value(),"Error al asignar permisos");
             }
         }
         return rolesAssigned;
     }
 
     //CONVERTIR A USER ENTITY
-    private UserEntity convertUserEntity(UserRequest userRequest){
+    public UserEntity convertUserEntity(UserRequest userRequest){
         return UserEntity.builder()
                 .name(userRequest.getName())
                 .lastName(userRequest.getLastname())
@@ -139,7 +156,7 @@ public class AuthenticactionServiceImpl implements AuthenticationService {
     }
 
     //CONVERTIR A RESPONSE USER
-    private UserResponse convertUserResponse(UserEntity userEntity){
+    public UserResponse convertUserResponse(UserEntity userEntity){
         return  UserResponse.builder()
                 .userId(userEntity.getId())
                 .name(userEntity.getName())
@@ -170,9 +187,7 @@ public class AuthenticactionServiceImpl implements AuthenticationService {
 
             return  convertUserResponse(userRegister);
         }catch (Exception ex){
-            throw new RuntimeException("Error");
+            throw new GlobalException(HttpStatus.INTERNAL_SERVER_ERROR.value(),"Error al registrar un usuario");
         }
     }
-
-
 }
